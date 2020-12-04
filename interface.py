@@ -14,6 +14,34 @@ from window.DialogForCreateDataBase import Ui_Dialog as DialogCreateObj
 
 import script_for_parse
 
+import time
+
+from PyQt5 import Qt  # +
+
+
+class WorkThread(Qt.QThread):
+    threadSignal = Qt.pyqtSignal(int)
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self, *args, **kwargs):
+        pass
+
+
+class WorkThread1(Qt.QThread):
+    threadSignal = Qt.pyqtSignal(int)
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self, *args, **kwargs):
+        c = 0
+        while True:
+            time.sleep(1)
+            c += 1
+            self.threadSignal.emit(c)
+
 
 def except_hook(cls, exception, traceback):
     sys.excepthook(cls, exception, traceback)
