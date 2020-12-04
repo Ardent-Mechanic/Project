@@ -22,11 +22,15 @@ from PyQt5 import Qt  # +
 class WorkThread(Qt.QThread):
     threadSignal = Qt.pyqtSignal(int)
 
-    def __init__(self):
+    def __init__(self, box):
+        self.mode, self.name, self.cm, self.srpt = box
         super().__init__()
 
     def run(self, *args, **kwargs):
-        pass
+        if self.mode == 1:
+            self.srpt.auto_parse(self.name, self.cm)
+        else:
+            self.srpt.manual_parse(self.name, self.cm)
 
 
 class WorkThread1(Qt.QThread):
@@ -43,26 +47,6 @@ class WorkThread1(Qt.QThread):
             self.threadSignal.emit(c)
 
 
-def except_hook(cls, exception, traceback):
-    sys.excepthook(cls, exception, traceback)
-
-
-class DialogCreateDataBase(QDialog, DialogCreateObj):
-    def __init__(self, mainwindow):
-        QDialog.__init__(self)
-        self.setupUi(self)
-        self.mainwindow = mainwindow
-
-        self.create_btn.clicked.connect(self.take_data)
-
-    def create_db(self, name):
-        print("FUCK")
-        # DateBaseW(name).create_table()
-
-    def take_data(self):
-        self.close()
-
-
 class DialogWindowTableForQuestion(QDialog, DialogObj):
     def __init__(self, mainwindow):
         QDialog.__init__(self)
@@ -73,13 +57,27 @@ class DialogWindowTableForQuestion(QDialog, DialogObj):
         self.buttonBox.rejected.connect(self.reject_data)
 
     def accept_data(self):
+        DateBaseW().create_table()
         self.close()
-        dialog_for_create = DialogCreateDataBase(self.mainwindow)
-        dialog_for_create.show()
-        dialog_for_create.exec()
 
     def reject_data(self):
         self.close()
+
+
+class MsgBox(Qt.QDialog):
+    def __init__(self):
+        super().__init__()
+
+        layout = Qt.QVBoxLayout(self)
+        self.label = Qt.QLabel("")
+        layout.addWidget(self.label)
+        close_btn = Qt.QPushButton("Close")
+        layout.addWidget(close_btn)
+
+        close_btn.clicked.connect(self.close)
+
+        self.setGeometry(900, 65, 400, 80)
+        self.setWindowTitle('MsgBox to display time')
 
 
 class MainWindow(QMainWindow, mainwindow):
@@ -96,7 +94,10 @@ class MainWindow(QMainWindow, mainwindow):
     def initUi(self):
         self.btn.clicked.connect(self.chek)
 
-        self.run.clicked.connect(self.parse_articles)
+        # self.run.clicked.connect(self.parse_articles)
+        self.run.clicked.connect(self.startExecuting1)
+
+        # self.chek_status.clicked.connect(self.startExecuting2)
 
         self.input_s.setText('no_delete.db')
 
@@ -113,6 +114,42 @@ class MainWindow(QMainWindow, mainwindow):
         self.msg2.setText("no additional argument entered")
         self.msg2.setWindowTitle("Warning")
 
+        self.msg = MsgBox()
+        self.thread1 = None
+        self.thread2 = None
+
+    def startExecuting1(self, *args):
+
+        if self.thread1 is None:
+            self.thread1 = WorkThread(args)
+            self.thread2 = WorkThread1()
+            # self.thread.threadSignal.connect(self.on_threadSignal)
+            self.thread1.start()
+
+            self.thread2.threadSignal.connect(self.on_threadSignal)
+            self.thread2.start()
+
+            self.run.setText("STOP")
+
+        else:
+            self.thread1.terminate()
+            self.thread2.terminate()
+            self.thread1 = None
+            self.thread2 = None
+            self.run.setText("RUN")
+
+    def on_threadSignal(self, second):
+        hour = minute = 0
+        if second // 3600 != 0:
+            hour, second = second // 3600, second - hour * 3600
+            second -= hour * 3600
+        if second // 60 != 0:
+            minute = second // 60
+            second -= minute * 60
+        self.msg.label.setText(f"{hour}:{minute}:{second}")
+        if not self.msg.isVisible():
+            self.msg.show()
+
     def parse_articles(self):
         if any([self.type1.isChecked(), self.type2.isChecked(), self.type3.isChecked()]):
             print(self.input_s.text())
@@ -127,11 +164,13 @@ class MainWindow(QMainWindow, mainwindow):
                 self.msg2.show()
             elif self.mode1.isChecked():
                 for name in box:
-                    action.auto_parse(name, int(self.st1.text()))
+                    self.startExecuting1(1, name, int(self.st1.text()), action)
+                    # action.auto_parse(name, int(self.st1.text()))
             else:
-                self.open_dialog()
+                # self.open_dialog()
                 for name in box:
-                    action.manual_parse(name, int(self.st2.text()))
+                    self.startExecuting1(2, name, int(self.st1.text()), action)
+                    # action.manual_parse(name, int(self.st2.text()))
 
         else:
             self.msg.show()
@@ -170,6 +209,10 @@ class MainWindow(QMainWindow, mainwindow):
 
     def filter(self):
         pass
+
+
+def except_hook(cls, exception, traceback):
+    sys.excepthook(cls, exception, traceback)
 
 
 if __name__ == '__main__':
