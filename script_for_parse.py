@@ -12,7 +12,7 @@ from time import sleep
 
 
 class Parser:
-    def __init__(self, name):
+    def __int__(self, cur, database):
         self.header = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
                                      " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36",
                        "accept": "*/*"}
@@ -22,9 +22,8 @@ class Parser:
                           'января': 1, 'февраля': 2, 'марта': 3, 'апреля': 4, 'мая': 5, 'июня': 6,
                           'июля': 7, 'августа': 8, 'сентября': 9, 'октября': 10, 'ноября': 11, 'декабря': 12}
 
-        self.name = name
-        self.db = sqlite3.connect(self.name)
-        self.cur = self.db.cursor()
+        self.cur = cur
+        self.database = database
 
     def get_html(self, url):  # Получение html страницы
         text_link = requests.get(url, self.header)
