@@ -1,3 +1,4 @@
+import sqlite3
 import sys
 
 from os.path import isfile
@@ -12,7 +13,7 @@ from window.dialog_one import Ui_Dialog as DialogObj
 
 from window.DialogForCreateDataBase import Ui_Dialog as DialogCreateObj
 
-import script_for_parse
+from script_for_parse import Parser
 
 import time
 
@@ -23,6 +24,7 @@ class WorkThread(Qt.QThread):
     threadSignal = Qt.pyqtSignal(int)
 
     def __init__(self, box):
+        print(box)
         self.mode, self.name, self.cm, self.srpt = box
         super().__init__()
 
@@ -48,8 +50,13 @@ class WorkThread1(Qt.QThread):
 
 
 class DialogWindowTableForQuestion(QDialog, DialogObj):
-    def __init__(self, mainwindow):
+    def __init__(self, mainwindow, cur, db):
         QDialog.__init__(self)
+
+        self.cur = cur
+        self.db = db
+        self.base = None
+
         self.setupUi(self)
         self.mainwindow = mainwindow
 
@@ -57,7 +64,7 @@ class DialogWindowTableForQuestion(QDialog, DialogObj):
         self.buttonBox.rejected.connect(self.reject_data)
 
     def accept_data(self):
-        DateBaseW().create_table()
+        self.base = DateBaseW(self.cur, self.db).create_table()
         self.close()
 
     def reject_data(self):
@@ -87,6 +94,9 @@ class MainWindow(QMainWindow, mainwindow):
 
         self.database = None
 
+        self.db = ''
+        self.cur = ''
+
         self.setupUi(self)
 
         self.initUi()
@@ -95,7 +105,7 @@ class MainWindow(QMainWindow, mainwindow):
         self.btn.clicked.connect(self.chek)
 
         # self.run.clicked.connect(self.parse_articles)
-        self.run.clicked.connect(self.startExecuting1)
+        self.run.clicked.connect(self.parse_articles)
 
         # self.chek_status.clicked.connect(self.startExecuting2)
 
@@ -114,16 +124,39 @@ class MainWindow(QMainWindow, mainwindow):
         self.msg2.setText("no additional argument entered")
         self.msg2.setWindowTitle("Warning")
 
-        self.msg = MsgBox()
+        self.msg3 = MsgBox()
         self.thread1 = None
         self.thread2 = None
 
-    def startExecuting1(self, *args):
+    def open_dialog(self):
+        dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
+        dialog_for_question.show()
+        dialog_for_question.exec()
+        if dialog_for_question:
+            pass
+        else:
+            print('fuck u')
 
+    def chek(self):
+        if not isfile(self.input_s.text()):
+            if self.open_dialog():
+                self.db = sqlite3.connect(self.input_s.text())
+                self.cur = self.db.cursor()
+                self.database = DateBaseW(self.cur, self.db)
+                self.database.create_table()
+
+
+        else:
+            self.db = sqlite3.connect(self.input_s.text())
+            self.cur = self.db.cursor()
+            self.database = DateBaseW(self.cur, self.db)
+
+        print(self.database)
+
+    def startExecuting1(self, *args):
         if self.thread1 is None:
             self.thread1 = WorkThread(args)
             self.thread2 = WorkThread1()
-            # self.thread.threadSignal.connect(self.on_threadSignal)
             self.thread1.start()
 
             self.thread2.threadSignal.connect(self.on_threadSignal)
@@ -146,14 +179,16 @@ class MainWindow(QMainWindow, mainwindow):
         if second // 60 != 0:
             minute = second // 60
             second -= minute * 60
-        self.msg.label.setText(f"{hour}:{minute}:{second}")
-        if not self.msg.isVisible():
-            self.msg.show()
+        self.msg3.label.setText(f"{hour}:{minute}:{second}")
+        if not self.msg3.isVisible():
+            self.msg3.show()
 
     def parse_articles(self):
         if any([self.type1.isChecked(), self.type2.isChecked(), self.type3.isChecked()]):
             print(self.input_s.text())
-            action = script_for_parse.Parser(self.input_s.text())
+
+            # action = Parser(self.cur, self.db)
+            action = Parser()
 
             box = list(
                 map(lambda val: val.text(), filter(lambda val: val.isChecked(), [self.type1, self.type2, self.type3])))
@@ -165,12 +200,9 @@ class MainWindow(QMainWindow, mainwindow):
             elif self.mode1.isChecked():
                 for name in box:
                     self.startExecuting1(1, name, int(self.st1.text()), action)
-                    # action.auto_parse(name, int(self.st1.text()))
             else:
-                # self.open_dialog()
                 for name in box:
-                    self.startExecuting1(2, name, int(self.st1.text()), action)
-                    # action.manual_parse(name, int(self.st2.text()))
+                    self.startExecuting1(2, name, int(self.st2.text()), action)
 
         else:
             self.msg.show()
@@ -182,7 +214,7 @@ class MainWindow(QMainWindow, mainwindow):
 
         rows_string = [i.text().lower() for i in row if i.isChecked()]
 
-        self.database = DateBaseW(self.input_s.text())
+        self.database = DateBaseW(self.cur, self.db)
 
         result = self.database.show_rows(rows_string)
 
@@ -197,15 +229,12 @@ class MainWindow(QMainWindow, mainwindow):
         [[self.tableWidget.setItem(i, j, QTableWidgetItem(str(val)))
           for j, val in enumerate(elem)] for i, elem in enumerate(result)]
 
-    def open_dialog(self):
-        dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
-        dialog_for_question.show()
-        dialog_for_question.exec()
+    # def open_dialog(self):
+    #     dialog_for_question = DialogWindowTableForQuestion(self.mainwindow, self.cur, self.db)
+    #     dialog_for_question.show()
+    #     dialog_for_question.exec()
+    #     if dialog_for_question:
 
-    def chek(self):
-        if not isfile(self.input_s.text()):
-            self.open_dialog()
-            # self.create_db('boom')
 
     def filter(self):
         pass
@@ -218,6 +247,6 @@ def except_hook(cls, exception, traceback):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = MainWindow()
-    sys.excepthook = except_hook
+    # sys.excepthook = except_hook
     ex.show()
     sys.exit(app.exec())
