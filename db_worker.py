@@ -2,7 +2,7 @@ import sqlite3
 
 
 class DateBaseW:
-    def __int__(self, cur, database):
+    def __init__(self, cur, database):
         self.cur = cur
         self.database = database
 
