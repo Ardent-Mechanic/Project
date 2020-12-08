@@ -15,7 +15,7 @@ class DateBaseW:
     article_name TEXT,
     author_name  TEXT,
     date         DATE    NOT NULL,
-    viwe         INTEGER
+    viwe         INTEGER,
     genre        TEXT    NOT NULL);""")  # main info
         self.database.commit()
 

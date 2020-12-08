@@ -21,28 +21,43 @@ from PyQt5 import Qt, QtWidgets  # +
 
 from PyQt5 import QtCore
 
+import sqlite3
+
 
 class WorkThread(Qt.QThread):
     threadSignal = Qt.pyqtSignal(int)
 
     def __init__(self, box, database_name):
-        self.database = DateBaseW(database_name)
-        # self.database = sqlite3.connect(name_database)
+        # self.database = DateBaseW(database_name)
+
+        self.database_name = database_name
+
+        # self.database = sqlite3.connect(database_name)
         # self.cur = self.database.cursor()
         # self.db = db
         self.mode, self.name, self.cm, self.srpt = box
         super().__init__()
 
     def filling_database(self, all_data):
+        database = sqlite3.connect(self.database_name)
+        cur = database.cursor()
 
         for data in all_data:
-            self.cur.execute(f"INSERT INTO article (article_name, author_name,"
+            cur.execute(f"INSERT INTO article (article_name, author_name,"
                              f" date, viwe, genre) VALUES (?, ?, ?, ?, ?)", data[:5])
-            self.database.commit()
+            database.commit()
 
-            self.cur.execute(f"INSERT INTO dop_info (article_link, author_link, time, rate) VALUES (?, ?, ?, ?)",
+            cur.execute(f"INSERT INTO dop_info (article_link, author_link, time, rate) VALUES (?, ?, ?, ?)",
                              data[5:])
-            self.database.commit()
+            database.commit()
+        database.close()
+
+    def chek_article(self, new_article_name):
+        database = sqlite3.connect(self.database_name)
+        cur = self.database.cursor()
+        chek = cur.execute(f"""SELECT id FROM article WHERE article_name = '{new_article_name}'""").fetchone()
+        database.close()
+        return chek
 
     def run(self, *args, **kwargs):
         if self.mode == 1:
@@ -50,20 +65,23 @@ class WorkThread(Qt.QThread):
             while True:
                 box = self.srpt.auto_parse(self.name, i)
                 for j in range(len(box)):
-                    if self.database.chek_article(box[j][0]):
+                    # if self.database.chek_article(box[j][0]):
+                    if self.chek_article(box[j][0]):
                         try:
                             box = box[:j + 1]
                         except:
                             pass
 
-                self.database.filling_database(box)
+                # self.database.filling_database(box)
+                self.filling_database(box)
 
                 if len(box) == 0:
                     i = 0
                 i += 1
         else:
             for page in self.srpt.get_page(self.cm, f'https://habr.com/{self.name}/'):
-                self.database.filling_database(self.srpt.manual_parse(self.name, page))
+                # self.database.filling_database(self.srpt.manual_parse(self.name, page))
+                self.filling_database(self.srpt.manual_parse(self.name, page))
 
 
 class WorkThread1(Qt.QThread):
