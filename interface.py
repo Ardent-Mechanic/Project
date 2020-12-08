@@ -17,22 +17,53 @@ from script_for_parse import Parser
 
 import time
 
-from PyQt5 import Qt  # +
+from PyQt5 import Qt, QtWidgets  # +
+
+from PyQt5 import QtCore
 
 
 class WorkThread(Qt.QThread):
     threadSignal = Qt.pyqtSignal(int)
 
-    def __init__(self, box):
-        print(box)
+    def __init__(self, box, database_name):
+        self.database = DateBaseW(database_name)
+        # self.database = sqlite3.connect(name_database)
+        # self.cur = self.database.cursor()
+        # self.db = db
         self.mode, self.name, self.cm, self.srpt = box
         super().__init__()
 
+    def filling_database(self, all_data):
+
+        for data in all_data:
+            self.cur.execute(f"INSERT INTO article (article_name, author_name,"
+                             f" date, viwe, genre) VALUES (?, ?, ?, ?, ?)", data[:5])
+            self.database.commit()
+
+            self.cur.execute(f"INSERT INTO dop_info (article_link, author_link, time, rate) VALUES (?, ?, ?, ?)",
+                             data[5:])
+            self.database.commit()
+
     def run(self, *args, **kwargs):
         if self.mode == 1:
-            self.srpt.auto_parse(self.name, self.cm)
+            i = 1
+            while True:
+                box = self.srpt.auto_parse(self.name, i)
+                for j in range(len(box)):
+                    if self.database.chek_article(box[j][0]):
+                        try:
+                            box = box[:j + 1]
+                        except:
+                            pass
+
+                self.database.filling_database(box)
+
+                if len(box) == 0:
+                    i = 0
+                i += 1
         else:
-            self.srpt.manual_parse(self.name, self.cm)
+            for page in self.srpt.get_page(self.cm, f'https://habr.com/{self.name}/'):
+                self.database.filling_database(self.srpt.manual_parse(self.name, page))
 
 
 class WorkThread1(Qt.QThread):
@@ -50,12 +81,10 @@ class WorkThread1(Qt.QThread):
 
 
 class DialogWindowTableForQuestion(QDialog, DialogObj):
-    def __init__(self, mainwindow, cur, db):
+    def __init__(self, mainwindow):
         QDialog.__init__(self)
 
-        self.cur = cur
-        self.db = db
-        self.base = None
+        self.com = None
 
         self.setupUi(self)
         self.mainwindow = mainwindow
@@ -63,12 +92,16 @@ class DialogWindowTableForQuestion(QDialog, DialogObj):
         self.buttonBox.accepted.connect(self.accept_data)
         self.buttonBox.rejected.connect(self.reject_data)
 
+    @QtCore.pyqtSlot()
     def accept_data(self):
-        self.base = DateBaseW(self.cur, self.db).create_table()
-        self.close()
+        # self.base = DateBaseW(self.cur, self.db).create_table()
+        self.com = True
+        self.accept()
 
+    @QtCore.pyqtSlot()
     def reject_data(self):
-        self.close()
+        self.com = False
+        self.accept()
 
 
 class MsgBox(Qt.QDialog):
@@ -93,9 +126,6 @@ class MainWindow(QMainWindow, mainwindow):
         self.mainwindow = mainwindow
 
         self.database = None
-
-        self.db = ''
-        self.cur = ''
 
         self.setupUi(self)
 
@@ -130,32 +160,32 @@ class MainWindow(QMainWindow, mainwindow):
 
     def open_dialog(self):
         dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
-        dialog_for_question.show()
-        dialog_for_question.exec()
-        if dialog_for_question:
-            pass
-        else:
-            print('fuck u')
+        if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
+            if dialog_for_question.com:
+                # db = sqlite3.connect(self.input_s.text())
+                # cur = self.db.cursor()
+                database = DateBaseW(self.input_s.text())
+                database.create_table()
+                database.exit()
 
     def chek(self):
         if not isfile(self.input_s.text()):
-            if self.open_dialog():
-                self.db = sqlite3.connect(self.input_s.text())
-                self.cur = self.db.cursor()
-                self.database = DateBaseW(self.cur, self.db)
-                self.database.create_table()
-
+            self.open_dialog()
 
         else:
-            self.db = sqlite3.connect(self.input_s.text())
-            self.cur = self.db.cursor()
-            self.database = DateBaseW(self.cur, self.db)
+            # self.db = sqlite3.connect(self.input_s.text())
+            # self.cur = self.db.cursor()
+            # self.database = DateBaseW(self.cur, self.db)
+            """Открытие окна о нахождении такой бд"""
+            pass
 
         print(self.database)
 
     def startExecuting1(self, *args):
         if self.thread1 is None:
-            self.thread1 = WorkThread(args)
+
+            # database = DateBaseW(self.input_s.text())
+            self.thread1 = WorkThread(args, self.input_s.text())
             self.thread2 = WorkThread1()
             self.thread1.start()
 
@@ -165,10 +195,15 @@ class MainWindow(QMainWindow, mainwindow):
             self.run.setText("STOP")
 
         else:
+
+            self.thread1.database.close()
+
             self.thread1.terminate()
             self.thread2.terminate()
+
             self.thread1 = None
             self.thread2 = None
+
             self.run.setText("RUN")
 
     def on_threadSignal(self, second):
@@ -188,7 +223,7 @@ class MainWindow(QMainWindow, mainwindow):
             print(self.input_s.text())
 
             # action = Parser(self.cur, self.db)
-            action = Parser()
+            action = Parser(self.database)
 
             box = list(
                 map(lambda val: val.text(), filter(lambda val: val.isChecked(), [self.type1, self.type2, self.type3])))
@@ -214,9 +249,11 @@ class MainWindow(QMainWindow, mainwindow):
 
         rows_string = [i.text().lower() for i in row if i.isChecked()]
 
-        self.database = DateBaseW(self.cur, self.db)
+        database = DateBaseW(self.input_s.text())
 
-        result = self.database.show_rows(rows_string)
+        result = database.show_rows(rows_string)
+
+        database.exit()
 
         # Заполнили размеры таблицы
         self.tableWidget.setRowCount(len(result))
@@ -228,13 +265,6 @@ class MainWindow(QMainWindow, mainwindow):
         # Заполнили таблицу полученными элементами
         [[self.tableWidget.setItem(i, j, QTableWidgetItem(str(val)))
           for j, val in enumerate(elem)] for i, elem in enumerate(result)]
-
-    # def open_dialog(self):
-    #     dialog_for_question = DialogWindowTableForQuestion(self.mainwindow, self.cur, self.db)
-    #     dialog_for_question.show()
-    #     dialog_for_question.exec()
-    #     if dialog_for_question:
-
 
     def filter(self):
         pass
