@@ -1,4 +1,3 @@
-import sqlite3
 import sys
 
 from os.path import isfile
@@ -11,8 +10,6 @@ from window.MainWindow import Ui_MainWindow as mainwindow
 
 from window.dialog_one import Ui_Dialog as DialogObj
 
-from window.DialogForCreateDataBase import Ui_Dialog as DialogCreateObj
-
 from script_for_parse import Parser
 
 import time
@@ -24,7 +21,7 @@ from PyQt5 import QtCore
 import sqlite3
 
 
-class WorkThread(Qt.QThread):
+class WorkThread1(Qt.QThread):
     threadSignal = Qt.pyqtSignal(int)
 
     def __init__(self, box, database_name):
@@ -54,7 +51,7 @@ class WorkThread(Qt.QThread):
 
     def chek_article(self, new_article_name):
         database = sqlite3.connect(self.database_name)
-        cur = self.database.cursor()
+        cur = database.cursor()
         chek = cur.execute(f"""SELECT id FROM article WHERE article_name = '{new_article_name}'""").fetchone()
         database.close()
         return chek
@@ -84,7 +81,7 @@ class WorkThread(Qt.QThread):
                 self.filling_database(self.srpt.manual_parse(self.name, page))
 
 
-class WorkThread1(Qt.QThread):
+class WorkThread2(Qt.QThread):
     threadSignal = Qt.pyqtSignal(int)
 
     def __init__(self):
@@ -203,8 +200,8 @@ class MainWindow(QMainWindow, mainwindow):
         if self.thread1 is None:
 
             # database = DateBaseW(self.input_s.text())
-            self.thread1 = WorkThread(args, self.input_s.text())
-            self.thread2 = WorkThread1()
+            self.thread1 = WorkThread1(args, self.input_s.text())
+            self.thread2 = WorkThread2()
             self.thread1.start()
 
             self.thread2.threadSignal.connect(self.on_threadSignal)
@@ -214,10 +211,11 @@ class MainWindow(QMainWindow, mainwindow):
 
         else:
 
-            self.thread1.database.close()
+            # self.thread1.database.close()
 
             self.thread1.terminate()
             self.thread2.terminate()
+            #self.msg3.close()
 
             self.thread1 = None
             self.thread2 = None
@@ -240,8 +238,9 @@ class MainWindow(QMainWindow, mainwindow):
         if any([self.type1.isChecked(), self.type2.isChecked(), self.type3.isChecked()]):
             print(self.input_s.text())
 
-            # action = Parser(self.cur, self.db)
-            action = Parser(self.database)
+            action = Parser()
+
+            # action = Parser(self.database)
 
             box = list(
                 map(lambda val: val.text(), filter(lambda val: val.isChecked(), [self.type1, self.type2, self.type3])))
