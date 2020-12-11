@@ -41,43 +41,47 @@ class WorkThread1(Qt.QThread):
 
         for data in all_data:
             cur.execute(f"INSERT INTO article (article_name, author_name,"
-                             f" date, viwe, genre) VALUES (?, ?, ?, ?, ?)", data[:5])
+                        f" date, viwe, genre) VALUES (?, ?, ?, ?, ?)", data[:5])
             database.commit()
 
             cur.execute(f"INSERT INTO dop_info (article_link, author_link, time, rate) VALUES (?, ?, ?, ?)",
-                             data[5:])
+                        data[5:])
             database.commit()
         database.close()
 
     def chek_article(self, new_article_name):
         database = sqlite3.connect(self.database_name)
         cur = database.cursor()
-        chek = cur.execute(f"""SELECT id FROM article WHERE article_name = '{new_article_name}'""").fetchone()
+        chek = cur.execute(f'SELECT id FROM article WHERE article_name = "{new_article_name}"').fetchone()
         database.close()
         return chek
 
     def run(self, *args, **kwargs):
         if self.mode == 1:
+            flag = False
             i = 1
             while True:
                 box = self.srpt.auto_parse(self.name, i)
                 for j in range(len(box)):
                     # if self.database.chek_article(box[j][0]):
                     if self.chek_article(box[j][0]):
-                        try:
-                            box = box[:j + 1]
-                        except:
-                            pass
+                        box = box[:j]
+                        flag = True
+                        break
 
-                # self.database.filling_database(box)
                 self.filling_database(box)
+
+                if flag:
+                    flag = False
+                    i = 0
+                    print(f'Заснул:{self.cm}c')
+                    time.sleep(self.cm)
 
                 if len(box) == 0:
                     i = 0
                 i += 1
         else:
             for page in self.srpt.get_page(self.cm, f'https://habr.com/{self.name}/'):
-                # self.database.filling_database(self.srpt.manual_parse(self.name, page))
                 self.filling_database(self.srpt.manual_parse(self.name, page))
 
 
@@ -199,7 +203,6 @@ class MainWindow(QMainWindow, mainwindow):
     def startExecuting1(self, *args):
         if self.thread1 is None:
 
-            # database = DateBaseW(self.input_s.text())
             self.thread1 = WorkThread1(args, self.input_s.text())
             self.thread2 = WorkThread2()
             self.thread1.start()
@@ -211,11 +214,9 @@ class MainWindow(QMainWindow, mainwindow):
 
         else:
 
-            # self.thread1.database.close()
-
             self.thread1.terminate()
             self.thread2.terminate()
-            #self.msg3.close()
+            # self.msg3.close()
 
             self.thread1 = None
             self.thread2 = None
