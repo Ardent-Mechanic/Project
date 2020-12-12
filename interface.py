@@ -80,6 +80,7 @@ class WorkThread1(Qt.QThread):
         else:
             for page in self.srpt.get_page(self.cm, f'https://habr.com/{self.name}/'):
                 self.filling_database(self.srpt.manual_parse(self.name, page))
+            self.quit()
 
 
 class WorkThread2(Qt.QThread):
@@ -151,7 +152,7 @@ class MainWindow(QMainWindow, mainwindow):
 
         self.run.clicked.connect(self.parse_articles)
 
-        self.input_s.setText('no_delete.db')
+        self.input_s.setText('aye.db')
 
         self.show_btn_acc.clicked.connect(self.show_table)
 
@@ -188,26 +189,36 @@ class MainWindow(QMainWindow, mainwindow):
             pass
 
     def startExecuting1(self, *args):
-        if self.thread1 is None:
-
+        if args[0] == 2:
             self.thread1 = WorkThread1(args, self.input_s.text())
             self.thread2 = WorkThread2()
+
             self.thread1.start()
 
-            self.thread2.threadSignal.connect(self.on_threadSignal)
-            self.thread2.start()
-
-            self.run.setText("STOP")
+            # self.thread1.wait()
+            # self.thread2.terminate()
 
         else:
+            if self.thread1 is None:
 
-            self.thread1.terminate()
-            self.thread2.terminate()
+                self.thread1 = WorkThread1(args, self.input_s.text())
+                self.thread2 = WorkThread2()
+                self.thread1.start()
 
-            self.thread1 = None
-            self.thread2 = None
+                self.thread2.threadSignal.connect(self.on_threadSignal)
+                self.thread2.start()
 
-            self.run.setText("RUN")
+                self.run.setText("STOP")
+
+            else:
+
+                self.thread1.terminate()
+                self.thread2.terminate()
+
+                self.thread1 = None
+                self.thread2 = None
+
+                self.run.setText("RUN")
 
     def on_threadSignal(self, second):
         hour = minute = 0
@@ -259,7 +270,6 @@ class MainWindow(QMainWindow, mainwindow):
         if not result:
             return
 
-        """Заполняем список"""
         if not self.table:
             self.table.append([i.text().lower() for i in row])
             self.table.append(result)
@@ -301,7 +311,7 @@ class MainWindow(QMainWindow, mainwindow):
 
         if params == 'date':
             data.sort(key=lambda val: (
-            dt.datetime.strptime(val[3], '%d-%m-%Y').date(), dt.datetime.strptime(val[7], '%H:%M').time(), val[4]))
+                dt.datetime.strptime(val[3], '%d-%m-%Y').date(), dt.datetime.strptime(val[7], '%H:%M').time(), val[4]))
         else:
             data.sort(key=lambda val: val[n], reverse=True)
 
