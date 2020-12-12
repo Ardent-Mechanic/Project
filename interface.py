@@ -20,18 +20,16 @@ from PyQt5 import QtCore
 
 import sqlite3
 
+import datetime as dt
+
 
 class WorkThread1(Qt.QThread):
     threadSignal = Qt.pyqtSignal(int)
 
     def __init__(self, box, database_name):
-        # self.database = DateBaseW(database_name)
 
         self.database_name = database_name
 
-        # self.database = sqlite3.connect(database_name)
-        # self.cur = self.database.cursor()
-        # self.db = db
         self.mode, self.name, self.cm, self.srpt = box
         super().__init__()
 
@@ -63,7 +61,6 @@ class WorkThread1(Qt.QThread):
             while True:
                 box = self.srpt.auto_parse(self.name, i)
                 for j in range(len(box)):
-                    # if self.database.chek_article(box[j][0]):
                     if self.chek_article(box[j][0]):
                         box = box[:j]
                         flag = True
@@ -113,7 +110,6 @@ class DialogWindowTableForQuestion(QDialog, DialogObj):
 
     @QtCore.pyqtSlot()
     def accept_data(self):
-        # self.base = DateBaseW(self.cur, self.db).create_table()
         self.com = True
         self.accept()
 
@@ -144,7 +140,7 @@ class MainWindow(QMainWindow, mainwindow):
         super().__init__()
         self.mainwindow = mainwindow
 
-        self.database = None
+        self.table = []
 
         self.setupUi(self)
 
@@ -153,15 +149,13 @@ class MainWindow(QMainWindow, mainwindow):
     def initUi(self):
         self.btn.clicked.connect(self.chek)
 
-        # self.run.clicked.connect(self.parse_articles)
         self.run.clicked.connect(self.parse_articles)
-
-        # self.chek_status.clicked.connect(self.startExecuting2)
 
         self.input_s.setText('no_delete.db')
 
         self.show_btn_acc.clicked.connect(self.show_table)
-        # print(self.show_1.text().lower())
+
+        self.filter_btn_acc.clicked.connect(self.filter)
 
         self.msg = QMessageBox()
         self.msg.setIcon(QMessageBox.Warning)
@@ -170,7 +164,7 @@ class MainWindow(QMainWindow, mainwindow):
 
         self.msg2 = QMessageBox()
         self.msg2.setIcon(QMessageBox.Warning)
-        self.msg2.setText("no additional argument entered")
+        self.msg2.setText("No additional argument entered")
         self.msg2.setWindowTitle("Warning")
 
         self.msg3 = MsgBox()
@@ -181,8 +175,6 @@ class MainWindow(QMainWindow, mainwindow):
         dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
         if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
             if dialog_for_question.com:
-                # db = sqlite3.connect(self.input_s.text())
-                # cur = self.db.cursor()
                 database = DateBaseW(self.input_s.text())
                 database.create_table()
                 database.exit()
@@ -192,13 +184,8 @@ class MainWindow(QMainWindow, mainwindow):
             self.open_dialog()
 
         else:
-            # self.db = sqlite3.connect(self.input_s.text())
-            # self.cur = self.db.cursor()
-            # self.database = DateBaseW(self.cur, self.db)
             """Открытие окна о нахождении такой бд"""
             pass
-
-        print(self.database)
 
     def startExecuting1(self, *args):
         if self.thread1 is None:
@@ -216,7 +203,6 @@ class MainWindow(QMainWindow, mainwindow):
 
             self.thread1.terminate()
             self.thread2.terminate()
-            # self.msg3.close()
 
             self.thread1 = None
             self.thread2 = None
@@ -237,11 +223,8 @@ class MainWindow(QMainWindow, mainwindow):
 
     def parse_articles(self):
         if any([self.type1.isChecked(), self.type2.isChecked(), self.type3.isChecked()]):
-            print(self.input_s.text())
 
             action = Parser()
-
-            # action = Parser(self.database)
 
             box = list(
                 map(lambda val: val.text(), filter(lambda val: val.isChecked(), [self.type1, self.type2, self.type3])))
@@ -273,6 +256,13 @@ class MainWindow(QMainWindow, mainwindow):
 
         database.exit()
 
+        if not result:
+            return
+
+        """Заполняем список"""
+        if not self.table:
+            self.table.append([i.text().lower() for i in row])
+            self.table.append(result)
         # Заполнили размеры таблицы
         self.tableWidget.setRowCount(len(result))
         self.tableWidget.setColumnCount(len(result[0]))
@@ -285,7 +275,39 @@ class MainWindow(QMainWindow, mainwindow):
           for j, val in enumerate(elem)] for i, elem in enumerate(result)]
 
     def filter(self):
-        pass
+
+        row = [self.show_1, self.show_2, self.show_3,
+               self.show_4, self.show_5, self.show_6,
+               self.show_7, self.show_8, self.show_9]
+
+        rows_string = [i.text().lower() for i in row]
+
+        database = DateBaseW(self.input_s.text())
+
+        data = database.show_rows(rows_string)
+
+        database.exit()
+
+        # Заполнили размеры таблицы
+        self.tableWidget.setRowCount(len(data))
+        self.tableWidget.setColumnCount(len(rows_string))
+
+        # Устанавливаем заголовки таблицы
+        self.tableWidget.setHorizontalHeaderLabels(rows_string)
+
+        params = [i.text().lower() for i in [self.fil_1, self.fil_2, self.fil_3, self.fil_4] if i.isChecked()][0]
+
+        n = rows_string.index(params)
+
+        if params == 'date':
+            data.sort(key=lambda val: (
+            dt.datetime.strptime(val[3], '%d-%m-%Y').date(), dt.datetime.strptime(val[7], '%H:%M').time(), val[4]))
+        else:
+            data.sort(key=lambda val: val[n], reverse=True)
+
+        # Заполнили таблицу полученными элементами
+        [[self.tableWidget.setItem(i, j, QTableWidgetItem(str(val)))
+          for j, val in enumerate(elem)] for i, elem in enumerate(data)]
 
 
 def except_hook(cls, exception, traceback):
