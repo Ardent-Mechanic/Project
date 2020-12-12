@@ -15,7 +15,7 @@ from script_for_parse import Parser
 
 import time
 
-from PyQt5 import Qt, QtWidgets  # +
+from PyQt5 import Qt, QtWidgets
 
 from PyQt5 import QtCore
 
@@ -157,8 +157,6 @@ class MainWindow(QMainWindow, mainwindow):
         self.run_3.clicked.connect(self.cleare_tables)
 
         self.run_4.clicked.connect(self.disconnect_from_db)
-
-        self.input_s.setText('aye.db')
 
         self.show_btn_acc.clicked.connect(self.show_table)
 
@@ -348,13 +346,8 @@ class MainWindow(QMainWindow, mainwindow):
         self.tableWidget.clear()
 
 
-def except_hook(cls, exception, traceback):
-    sys.excepthook(cls, exception, traceback)
-
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = MainWindow()
-    # sys.excepthook = except_hook
     ex.show()
     sys.exit(app.exec())
