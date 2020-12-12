@@ -1,3 +1,4 @@
+import os
 import sys
 
 from os.path import isfile
@@ -71,7 +72,6 @@ class WorkThread1(Qt.QThread):
                 if flag:
                     flag = False
                     i = 0
-                    print(f'Заснул:{self.cm}c')
                     time.sleep(self.cm)
 
                 if len(box) == 0:
@@ -152,6 +152,12 @@ class MainWindow(QMainWindow, mainwindow):
 
         self.run.clicked.connect(self.parse_articles)
 
+        self.run_2.clicked.connect(self.delete_database)
+
+        self.run_3.clicked.connect(self.cleare_tables)
+
+        self.run_4.clicked.connect(self.disconnect_from_db)
+
         self.input_s.setText('aye.db')
 
         self.show_btn_acc.clicked.connect(self.show_table)
@@ -171,6 +177,10 @@ class MainWindow(QMainWindow, mainwindow):
         self.msg3 = MsgBox()
         self.thread1 = None
         self.thread2 = None
+
+        self.msg4 = QMessageBox()
+        self.msg4.setIcon(QMessageBox.Warning)
+        self.msg4.setWindowTitle("Warning")
 
     def open_dialog(self):
         dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
@@ -195,8 +205,6 @@ class MainWindow(QMainWindow, mainwindow):
 
             self.thread1.start()
 
-            # self.thread1.wait()
-            # self.thread2.terminate()
 
         else:
             if self.thread1 is None:
@@ -307,6 +315,8 @@ class MainWindow(QMainWindow, mainwindow):
 
         params = [i.text().lower() for i in [self.fil_1, self.fil_2, self.fil_3, self.fil_4] if i.isChecked()][0]
 
+        [print(i[-1]) for i in data if type(i[-1]) != int]
+
         n = rows_string.index(params)
 
         if params == 'date':
@@ -318,6 +328,24 @@ class MainWindow(QMainWindow, mainwindow):
         # Заполнили таблицу полученными элементами
         [[self.tableWidget.setItem(i, j, QTableWidgetItem(str(val)))
           for j, val in enumerate(elem)] for i, elem in enumerate(data)]
+
+    def delete_database(self):
+        try:
+            path = os.path.join(os.path.abspath(os.path.dirname(__file__)), self.input_s.text())
+            os.remove(path)
+        except Exception as ex:
+            print(ex)
+            self.msg4.setText(f"Error:{ex}")
+            self.msg4.show()
+
+    def cleare_tables(self):
+        database = DateBaseW(self.input_s.text())
+        database.clear_table()
+        database.exit()
+
+    def disconnect_from_db(self):
+        self.input_s.setText('')
+        self.tableWidget.clear()
 
 
 def except_hook(cls, exception, traceback):
