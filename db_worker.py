@@ -5,8 +5,6 @@ class DateBaseW:
     def __init__(self, name_database):
         self.database = sqlite3.connect(name_database)
         self.cur = self.database.cursor()
-        # self.cur = cur
-        # self.database = database
 
     def create_table(self, name1="article", name2="dop_info"):
 
@@ -32,21 +30,12 @@ class DateBaseW:
         FROM article JOIN dop_info ON article.id = dop_info.dop_id""").fetchall()
         return rows
 
-    def clear_table(self, com):
-        if com == 1:
-            self.cur.execute("DELETE FROM article;")
-            self.database.commit()
+    def clear_table(self):
+        self.cur.execute("DELETE FROM article;")
+        self.database.commit()
 
-        elif com == 2:
-            self.cur.execute("DELETE FROM dop_info;")
-            self.database.commit()
-
-        else:
-            self.cur.execute("DELETE FROM article;")
-            self.database.commit()
-
-            self.cur.execute("DELETE FROM dop_info;")
-            self.database.commit()
+        self.cur.execute("DELETE FROM dop_info;")
+        self.database.commit()
 
     def filling_database(self, all_data):
 
