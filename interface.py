@@ -151,7 +151,6 @@ class MainWindow(QMainWindow, mainwindow):
 
         self.database = None
 
-
     def initUi(self):
         self.btn.clicked.connect(self.chek)
 
@@ -222,6 +221,7 @@ class MainWindow(QMainWindow, mainwindow):
             self.activate_buttons()
 
     def startExecuting1(self, *args):
+
         if self.database:
             self.database.exit()
             self.database = None
@@ -231,6 +231,8 @@ class MainWindow(QMainWindow, mainwindow):
             self.thread2 = WorkThread2()
 
             self.thread1.start()
+
+            self.database = DateBaseW(self.input_s.text())
 
 
         else:
@@ -245,6 +247,8 @@ class MainWindow(QMainWindow, mainwindow):
 
                 self.run.setText("STOP")
 
+                self.database = DateBaseW(self.input_s.text())
+
             else:
 
                 self.thread1.terminate()
@@ -254,8 +258,6 @@ class MainWindow(QMainWindow, mainwindow):
                 self.thread2 = None
 
                 self.run.setText("RUN")
-
-                self.database = DateBaseW(self.input_s.text())
 
     def on_threadSignal(self, second):
         hour = minute = 0
@@ -370,6 +372,18 @@ class MainWindow(QMainWindow, mainwindow):
     def disconnect_from_db(self):
         self.input_s.setText('')
         self.tableWidget.clear()
+
+        self.run.setEnabled(False)
+
+        self.run_2.setEnabled(False)
+
+        self.run_3.setEnabled(False)
+
+        self.run_4.setEnabled(False)
+
+        self.show_btn_acc.setEnabled(False)
+
+        self.filter_btn_acc.setEnabled(True)
 
 
 if __name__ == '__main__':
