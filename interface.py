@@ -5,13 +5,18 @@ import sys
 
 from os.path import isfile
 
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QDialog, QMainWindow, QTableWidgetItem, QMessageBox
 
 from db_worker import DateBaseW
 
 from window.MainWindow import Ui_MainWindow as mainwindow
 
-from window.dialog_one import Ui_Dialog as DialogObj
+from window.dialog_one import Ui_Dialog as DialogObj_1
+
+from window.dialog_for_delete import Ui_Dialog as DialogObj_2
+
+from window.dialog_for_clear import Ui_Dialog as DialogObj_3
 
 from script_for_parse import Parser
 
@@ -99,7 +104,53 @@ class WorkThread2(Qt.QThread):
             self.threadSignal.emit(c)
 
 
-class DialogWindowTableForQuestion(QDialog, DialogObj):
+class DialogWindowTableForQuestion(QDialog, DialogObj_1):
+    def __init__(self, mainwindow):
+        QDialog.__init__(self)
+
+        self.com = None
+
+        self.setupUi(self)
+        self.mainwindow = mainwindow
+
+        self.buttonBox.accepted.connect(self.accept_data)
+        self.buttonBox.rejected.connect(self.reject_data)
+
+    @QtCore.pyqtSlot()
+    def accept_data(self):
+        self.com = True
+        self.accept()
+
+    @QtCore.pyqtSlot()
+    def reject_data(self):
+        self.com = False
+        self.accept()
+
+
+class DialogForDeleteDataBase(QDialog, DialogObj_2):
+    def __init__(self, mainwindow):
+        QDialog.__init__(self)
+
+        self.com = None
+
+        self.setupUi(self)
+        self.mainwindow = mainwindow
+
+        self.buttonBox.accepted.connect(self.accept_data)
+        self.buttonBox.rejected.connect(self.reject_data)
+
+    @QtCore.pyqtSlot()
+    def accept_data(self):
+        self.com = True
+        self.accept()
+
+    @QtCore.pyqtSlot()
+    def reject_data(self):
+        self.com = False
+        self.accept()
+
+
+class DialogForClearDataBase(QDialog, DialogObj_3):
     def __init__(self, mainwindow):
         QDialog.__init__(self)
 
@@ -152,6 +203,9 @@ class MainWindow(QMainWindow, mainwindow):
         self.database = None
 
     def initUi(self):
+
+        font = QFont("Comic Sans MS", 12)
+
         self.btn.clicked.connect(self.chek)
 
         self.run.clicked.connect(self.parse_articles)
@@ -160,7 +214,7 @@ class MainWindow(QMainWindow, mainwindow):
         self.run_2.clicked.connect(self.delete_database)
         self.run_2.setEnabled(False)
 
-        self.run_3.clicked.connect(self.cleare_tables)
+        self.run_3.clicked.connect(self.cleare_table)
         self.run_3.setEnabled(False)
 
         self.run_4.clicked.connect(self.disconnect_from_db)
@@ -176,11 +230,13 @@ class MainWindow(QMainWindow, mainwindow):
         self.msg.setIcon(QMessageBox.Warning)
         self.msg.setText("Section not selected")
         self.msg.setWindowTitle("Warning")
+        self.msg.setFont(font)
 
         self.msg2 = QMessageBox()
         self.msg2.setIcon(QMessageBox.Warning)
         self.msg2.setText("No additional argument entered")
         self.msg2.setWindowTitle("Warning")
+        self.msg2.setFont(font)
 
         self.msg3 = MsgBox()
         self.thread1 = None
@@ -189,6 +245,7 @@ class MainWindow(QMainWindow, mainwindow):
         self.msg4 = QMessageBox()
         self.msg4.setIcon(QMessageBox.Warning)
         self.msg4.setWindowTitle("Warning")
+        self.msg4.setFont(font)
 
     def activate_buttons(self):
         self.run.setEnabled(True)
@@ -202,6 +259,19 @@ class MainWindow(QMainWindow, mainwindow):
         self.show_btn_acc.setEnabled(True)
 
         self.filter_btn_acc.setEnabled(True)
+
+    def off_buttons(self):
+        self.run.setEnabled(False)
+
+        self.run_2.setEnabled(False)
+
+        self.run_3.setEnabled(False)
+
+        self.run_4.setEnabled(False)
+
+        self.show_btn_acc.setEnabled(False)
+
+        self.filter_btn_acc.setEnabled(False)
 
     def open_dialog(self):
         dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
@@ -227,13 +297,14 @@ class MainWindow(QMainWindow, mainwindow):
             self.database = None
 
         if args[0] == 2:
+
+            self.run.setEnabled(False)
+
             self.thread1 = WorkThread1(args, self.input_s.text())
-            self.thread2 = WorkThread2()
 
             self.thread1.start()
 
             self.database = DateBaseW(self.input_s.text())
-
 
         else:
             if self.thread1 is None:
@@ -357,33 +428,31 @@ class MainWindow(QMainWindow, mainwindow):
           for j, val in enumerate(elem)] for i, elem in enumerate(data)]
 
     def delete_database(self):
-        try:
-            path = os.path.join(os.path.abspath(os.path.dirname(__file__)), self.input_s.text())
-            os.remove(path)
-        except Exception as ex:
-            print(ex)
-            self.msg4.setText(f"Error:{ex}")
-            self.msg4.show()
+        dialog_for_question = DialogForDeleteDataBase(self.mainwindow)
+        if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
+            if dialog_for_question.com:
+                try:
+                    self.database.exit()
+                    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), self.input_s.text())
+                    os.remove(path)
+                    self.disconnect_from_db()
+                except Exception as ex:
+                    print(ex)
+                    self.msg4.setText(f"Error:{ex}")
+                    self.msg4.show()
 
-    def cleare_tables(self):
-
-        self.database.clear_table()
+    def cleare_table(self):
+        dialog_for_question = DialogForClearDataBase(self.mainwindow)
+        if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
+            if dialog_for_question.com:
+                self.database.clear_table()
+                self.tableWidget.clear()
 
     def disconnect_from_db(self):
         self.input_s.setText('')
         self.tableWidget.clear()
 
-        self.run.setEnabled(False)
-
-        self.run_2.setEnabled(False)
-
-        self.run_3.setEnabled(False)
-
-        self.run_4.setEnabled(False)
-
-        self.show_btn_acc.setEnabled(False)
-
-        self.filter_btn_acc.setEnabled(True)
+        self.off_buttons()
 
 
 if __name__ == '__main__':
