@@ -11,7 +11,9 @@ from db_worker import DateBaseW
 
 from window.MainWindow import Ui_MainWindow as mainwindow
 
-from window.dialog_one import Ui_Dialog as DialogObj
+from window.dialog_one import Ui_Dialog as DialogObj_1
+
+from window.dialog_for_delete import Ui_Dialog as DialogObj_2
 
 from script_for_parse import Parser
 
@@ -99,7 +101,30 @@ class WorkThread2(Qt.QThread):
             self.threadSignal.emit(c)
 
 
-class DialogWindowTableForQuestion(QDialog, DialogObj):
+class DialogWindowTableForQuestion(QDialog, DialogObj_1):
+    def __init__(self, mainwindow):
+        QDialog.__init__(self)
+
+        self.com = None
+
+        self.setupUi(self)
+        self.mainwindow = mainwindow
+
+        self.buttonBox.accepted.connect(self.accept_data)
+        self.buttonBox.rejected.connect(self.reject_data)
+
+    @QtCore.pyqtSlot()
+    def accept_data(self):
+        self.com = True
+        self.accept()
+
+    @QtCore.pyqtSlot()
+    def reject_data(self):
+        self.com = False
+        self.accept()
+
+
+class DialogForDeleteDataBase(QDialog, DialogObj_2):
     def __init__(self, mainwindow):
         QDialog.__init__(self)
 
@@ -357,13 +382,17 @@ class MainWindow(QMainWindow, mainwindow):
           for j, val in enumerate(elem)] for i, elem in enumerate(data)]
 
     def delete_database(self):
-        try:
-            path = os.path.join(os.path.abspath(os.path.dirname(__file__)), self.input_s.text())
-            os.remove(path)
-        except Exception as ex:
-            print(ex)
-            self.msg4.setText(f"Error:{ex}")
-            self.msg4.show()
+        dialog_for_question = DialogForDeleteDataBase(self.mainwindow)
+        if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
+            if dialog_for_question.com:
+                try:
+                    self.database.exit()
+                    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), self.input_s.text())
+                    os.remove(path)
+                except Exception as ex:
+                    print(ex)
+                    self.msg4.setText(f"Error:{ex}")
+                    self.msg4.show()
 
     def cleare_tables(self):
 
