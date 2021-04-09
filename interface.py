@@ -254,6 +254,8 @@ class MainWindow(QMainWindow, mainwindow):
         self.msg4.setFont(font)
 
     def activate_buttons(self):
+        # Разблокировка всех кнопок
+
         self.run.setEnabled(True)
 
         self.run_2.setEnabled(True)
@@ -267,6 +269,8 @@ class MainWindow(QMainWindow, mainwindow):
         self.filter_btn_acc.setEnabled(True)
 
     def off_buttons(self):
+        # Блокировка всех кнопок
+
         self.run.setEnabled(False)
 
         self.run_2.setEnabled(False)
@@ -280,6 +284,8 @@ class MainWindow(QMainWindow, mainwindow):
         self.filter_btn_acc.setEnabled(False)
 
     def open_dialog(self):
+        # Предложение о создании новой базы данных
+
         dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
         if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
             if dialog_for_question.com:
@@ -288,6 +294,8 @@ class MainWindow(QMainWindow, mainwindow):
                 self.activate_buttons()
 
     def chek(self):
+        # Поиск базы данных в дирректории с проектом
+
         if not isfile(self.input_s.text()):
             self.open_dialog()
 
@@ -297,6 +305,7 @@ class MainWindow(QMainWindow, mainwindow):
             self.activate_buttons()
 
     def startExecuting1(self, *args):
+        # Создание дополнительных потоков для корректной работы интерфейса и сборщика статей
 
         if self.database:
             self.database.exit()
@@ -339,6 +348,8 @@ class MainWindow(QMainWindow, mainwindow):
                 self.database = DateBaseW(self.input_s.text())
 
     def on_threadSignal(self, second):
+        # Функция для подсчета времени, прошедшего с начала сбора статей в автоматическом режиме
+
         hour = minute = 0
         if second // 3600 != 0:
             hour, second = second // 3600, second - hour * 3600
@@ -356,11 +367,13 @@ class MainWindow(QMainWindow, mainwindow):
 
             action = Parser()
 
+            # Получение типа статей для сбора
             box = list(
                 map(lambda val: val.text(), filter(lambda val: val.isChecked(), [self.type1, self.type2, self.type3])))
 
             box = list(map(lambda val: val.split('_')[0].lower(), box))
 
+            # Определение выбранного режима сбора
             if not self.st1.text() and not self.st2.text():
                 self.msg2.show()
             elif self.mode1.isChecked():
@@ -379,6 +392,7 @@ class MainWindow(QMainWindow, mainwindow):
                self.show_4, self.show_5, self.show_6,
                self.show_7, self.show_8, self.show_9]
 
+        # Получаем список с выбраными названиями столбцов
         rows_string = [i.text().lower() for i in row if i.isChecked()]
 
         result = self.database.show_rows(rows_string)
@@ -389,6 +403,7 @@ class MainWindow(QMainWindow, mainwindow):
         if not self.table:
             self.table.append([i.text().lower() for i in row])
             self.table.append(result)
+
         # Заполнили размеры таблицы
         self.tableWidget.setRowCount(len(result))
         self.tableWidget.setColumnCount(len(result[0]))
@@ -423,6 +438,8 @@ class MainWindow(QMainWindow, mainwindow):
 
         n = rows_string.index(params)
 
+        # Приводим дату в более удобный для работы формат
+
         if params == 'date':
             data.sort(key=lambda val: (
                 dt.datetime.strptime(val[3], '%d-%m-%Y').date(), dt.datetime.strptime(val[7], '%H:%M').time(), val[4]))
@@ -434,6 +451,7 @@ class MainWindow(QMainWindow, mainwindow):
           for j, val in enumerate(elem)] for i, elem in enumerate(data)]
 
     def delete_database(self):
+        # Проверяем какая кнопка нажата, если нажата кнопка (ДА), удаляем базу
         dialog_for_question = DialogForDeleteDataBase(self.mainwindow)
         if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
             if dialog_for_question.com:
@@ -448,6 +466,7 @@ class MainWindow(QMainWindow, mainwindow):
                     self.msg4.show()
 
     def cleare_table(self):
+        # Проверяем какая кнопка нажата, если нажата кнопка (ДА), удаляем все записи из базы
         dialog_for_question = DialogForClearDataBase(self.mainwindow)
         if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
             if dialog_for_question.com:
@@ -455,6 +474,7 @@ class MainWindow(QMainWindow, mainwindow):
                 self.tableWidget.clear()
 
     def disconnect_from_db(self):
+        # Отключение от базы
         self.input_s.setText('')
         self.tableWidget.clear()
 
