@@ -226,6 +226,12 @@ class MainWindow(QMainWindow, mainwindow):
         self.filter_btn_acc.clicked.connect(self.filter)
         self.filter_btn_acc.setEnabled(False)
 
+        self.msg0 = QMessageBox()
+        self.msg0.setIcon(QMessageBox.Information)
+        self.msg0.setText("Database found")
+        self.msg0.setWindowTitle("Info")
+        self.msg0.setFont(font)
+
         self.msg = QMessageBox()
         self.msg.setIcon(QMessageBox.Warning)
         self.msg.setText("Section not selected")
@@ -286,7 +292,7 @@ class MainWindow(QMainWindow, mainwindow):
             self.open_dialog()
 
         else:
-            """Открытие окна о нахождении такой бд"""
+            self.msg0.show()
             self.database = DateBaseW(self.input_s.text())
             self.activate_buttons()
 
