@@ -259,6 +259,8 @@ class MainWindow(QMainWindow, mainwindow):
 
                 self.run.setText("RUN")
 
+                self.database = DateBaseW(self.input_s.text())
+
     def on_threadSignal(self, second):
         hour = minute = 0
         if second // 3600 != 0:
@@ -295,8 +297,6 @@ class MainWindow(QMainWindow, mainwindow):
             self.msg.show()
 
     def show_table(self):
-
-        """Добавить проверку коннекта к базе"""
 
         row = [self.show_1, self.show_2, self.show_3,
                self.show_4, self.show_5, self.show_6,
