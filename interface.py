@@ -185,7 +185,7 @@ class MainWindow(QMainWindow, mainwindow):
         self.run_2.clicked.connect(self.delete_database)
         self.run_2.setEnabled(False)
 
-        self.run_3.clicked.connect(self.cleare_tables)
+        self.run_3.clicked.connect(self.cleare_table)
         self.run_3.setEnabled(False)
 
         self.run_4.clicked.connect(self.disconnect_from_db)
@@ -227,6 +227,19 @@ class MainWindow(QMainWindow, mainwindow):
         self.show_btn_acc.setEnabled(True)
 
         self.filter_btn_acc.setEnabled(True)
+
+    def off_buttons(self):
+        self.run.setEnabled(False)
+
+        self.run_2.setEnabled(False)
+
+        self.run_3.setEnabled(False)
+
+        self.run_4.setEnabled(False)
+
+        self.show_btn_acc.setEnabled(False)
+
+        self.filter_btn_acc.setEnabled(False)
 
     def open_dialog(self):
         dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
@@ -389,30 +402,22 @@ class MainWindow(QMainWindow, mainwindow):
                     self.database.exit()
                     path = os.path.join(os.path.abspath(os.path.dirname(__file__)), self.input_s.text())
                     os.remove(path)
+                    self.disconnect_from_db()
                 except Exception as ex:
                     print(ex)
                     self.msg4.setText(f"Error:{ex}")
                     self.msg4.show()
 
-    def cleare_tables(self):
+    def cleare_table(self):
 
         self.database.clear_table()
+        self.tableWidget.clear()
 
     def disconnect_from_db(self):
         self.input_s.setText('')
         self.tableWidget.clear()
 
-        self.run.setEnabled(False)
-
-        self.run_2.setEnabled(False)
-
-        self.run_3.setEnabled(False)
-
-        self.run_4.setEnabled(False)
-
-        self.show_btn_acc.setEnabled(False)
-
-        self.filter_btn_acc.setEnabled(True)
+        self.off_buttons()
 
 
 if __name__ == '__main__':
