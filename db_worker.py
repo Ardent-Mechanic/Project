@@ -7,22 +7,21 @@ class DateBaseW:
         self.cur = self.database.cursor()
 
     def create_table(self, name1="article", name2="dop_info"):
-
         self.cur.execute(f"""CREATE TABLE {name1} (
-    id           INTEGER PRIMARY KEY ON CONFLICT ROLLBACK NOT NULL,
-    article_name TEXT,
-    author_name  TEXT,
-    date         DATE    NOT NULL,
-    viwe         INTEGER,
-    genre        TEXT    NOT NULL);""")  # main info
+            id           INTEGER PRIMARY KEY ON CONFLICT ROLLBACK NOT NULL,
+            article_name TEXT,
+            author_name  TEXT,
+            date         DATE    NOT NULL,
+            viwe         INTEGER,
+            genre        TEXT    NOT NULL);""")  # main info
         self.database.commit()
 
         self.cur.execute(f"""CREATE TABLE {name2} (
-    dop_id       INTEGER PRIMARY KEY ON CONFLICT ROLLBACK NOT NULL,
-    article_link TEXT,
-    author_link TEXT,
-    time         TIME    NOT NULL,
-    rate         INTEGER);""")  # dop info
+            dop_id       INTEGER PRIMARY KEY ON CONFLICT ROLLBACK NOT NULL,
+            article_link TEXT,
+            author_link TEXT,
+            time         TIME    NOT NULL,
+            rate         INTEGER);""")  # dop info
         self.database.commit()
 
     def show_rows(self, rows_string):
@@ -38,7 +37,6 @@ class DateBaseW:
         self.database.commit()
 
     def filling_database(self, all_data):
-
         for data in all_data:
             self.cur.execute(f"INSERT INTO article (article_name, author_name,"
                              f" date, viwe, genre) VALUES (?, ?, ?, ?, ?)", data[:5])

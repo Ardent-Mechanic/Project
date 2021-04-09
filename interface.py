@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import sys
 
@@ -147,20 +149,28 @@ class MainWindow(QMainWindow, mainwindow):
 
         self.initUi()
 
+        self.database = None
+
     def initUi(self):
         self.btn.clicked.connect(self.chek)
 
         self.run.clicked.connect(self.parse_articles)
+        self.run.setEnabled(False)
 
         self.run_2.clicked.connect(self.delete_database)
+        self.run_2.setEnabled(False)
 
         self.run_3.clicked.connect(self.cleare_tables)
+        self.run_3.setEnabled(False)
 
         self.run_4.clicked.connect(self.disconnect_from_db)
+        self.run_4.setEnabled(False)
 
         self.show_btn_acc.clicked.connect(self.show_table)
+        self.show_btn_acc.setEnabled(False)
 
         self.filter_btn_acc.clicked.connect(self.filter)
+        self.filter_btn_acc.setEnabled(False)
 
         self.msg = QMessageBox()
         self.msg.setIcon(QMessageBox.Warning)
@@ -180,13 +190,26 @@ class MainWindow(QMainWindow, mainwindow):
         self.msg4.setIcon(QMessageBox.Warning)
         self.msg4.setWindowTitle("Warning")
 
+    def activate_buttons(self):
+        self.run.setEnabled(True)
+
+        self.run_2.setEnabled(True)
+
+        self.run_3.setEnabled(True)
+
+        self.run_4.setEnabled(True)
+
+        self.show_btn_acc.setEnabled(True)
+
+        self.filter_btn_acc.setEnabled(True)
+
     def open_dialog(self):
         dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
         if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
             if dialog_for_question.com:
-                database = DateBaseW(self.input_s.text())
-                database.create_table()
-                database.exit()
+                self.database = DateBaseW(self.input_s.text())
+                self.database.create_table()
+                self.activate_buttons()
 
     def chek(self):
         if not isfile(self.input_s.text()):
@@ -194,14 +217,22 @@ class MainWindow(QMainWindow, mainwindow):
 
         else:
             """Открытие окна о нахождении такой бд"""
-            pass
+            self.database = DateBaseW(self.input_s.text())
+            self.activate_buttons()
 
     def startExecuting1(self, *args):
+
+        if self.database:
+            self.database.exit()
+            self.database = None
+
         if args[0] == 2:
             self.thread1 = WorkThread1(args, self.input_s.text())
             self.thread2 = WorkThread2()
 
             self.thread1.start()
+
+            self.database = DateBaseW(self.input_s.text())
 
 
         else:
@@ -216,6 +247,8 @@ class MainWindow(QMainWindow, mainwindow):
 
                 self.run.setText("STOP")
 
+                self.database = DateBaseW(self.input_s.text())
+
             else:
 
                 self.thread1.terminate()
@@ -225,6 +258,8 @@ class MainWindow(QMainWindow, mainwindow):
                 self.thread2 = None
 
                 self.run.setText("RUN")
+
+                self.database = DateBaseW(self.input_s.text())
 
     def on_threadSignal(self, second):
         hour = minute = 0
@@ -239,6 +274,7 @@ class MainWindow(QMainWindow, mainwindow):
             self.msg3.show()
 
     def parse_articles(self):
+
         if any([self.type1.isChecked(), self.type2.isChecked(), self.type3.isChecked()]):
 
             action = Parser()
@@ -261,17 +297,14 @@ class MainWindow(QMainWindow, mainwindow):
             self.msg.show()
 
     def show_table(self):
+
         row = [self.show_1, self.show_2, self.show_3,
                self.show_4, self.show_5, self.show_6,
                self.show_7, self.show_8, self.show_9]
 
         rows_string = [i.text().lower() for i in row if i.isChecked()]
 
-        database = DateBaseW(self.input_s.text())
-
-        result = database.show_rows(rows_string)
-
-        database.exit()
+        result = self.database.show_rows(rows_string)
 
         if not result:
             return
@@ -298,11 +331,7 @@ class MainWindow(QMainWindow, mainwindow):
 
         rows_string = [i.text().lower() for i in row]
 
-        database = DateBaseW(self.input_s.text())
-
-        data = database.show_rows(rows_string)
-
-        database.exit()
+        data = self.database.show_rows(rows_string)
 
         # Заполнили размеры таблицы
         self.tableWidget.setRowCount(len(data))
@@ -337,13 +366,24 @@ class MainWindow(QMainWindow, mainwindow):
             self.msg4.show()
 
     def cleare_tables(self):
-        database = DateBaseW(self.input_s.text())
-        database.clear_table()
-        database.exit()
+
+        self.database.clear_table()
 
     def disconnect_from_db(self):
         self.input_s.setText('')
         self.tableWidget.clear()
+
+        self.run.setEnabled(False)
+
+        self.run_2.setEnabled(False)
+
+        self.run_3.setEnabled(False)
+
+        self.run_4.setEnabled(False)
+
+        self.show_btn_acc.setEnabled(False)
+
+        self.filter_btn_acc.setEnabled(True)
 
 
 if __name__ == '__main__':
