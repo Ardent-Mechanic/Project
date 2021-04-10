@@ -68,6 +68,7 @@ class WorkThread1(Qt.QThread):
             i = 1
             while True:
                 box = self.srpt.auto_parse(self.name, i)
+                # print(box)
                 for j in range(len(box)):
                     if self.chek_article(box[j][0]):
                         box = box[:j]
@@ -202,6 +203,8 @@ class MainWindow(QMainWindow, mainwindow):
 
         self.database = None
 
+        self.db_link = ""
+
     def initUi(self):
 
         font = QFont("Comic Sans MS", 12)
@@ -226,6 +229,12 @@ class MainWindow(QMainWindow, mainwindow):
         self.filter_btn_acc.clicked.connect(self.filter)
         self.filter_btn_acc.setEnabled(False)
 
+        self.msg0 = QMessageBox()
+        self.msg0.setIcon(QMessageBox.Information)
+        self.msg0.setText("Database found")
+        self.msg0.setWindowTitle("Info")
+        self.msg0.setFont(font)
+
         self.msg = QMessageBox()
         self.msg.setIcon(QMessageBox.Warning)
         self.msg.setText("Section not selected")
@@ -248,6 +257,8 @@ class MainWindow(QMainWindow, mainwindow):
         self.msg4.setFont(font)
 
     def activate_buttons(self):
+        # Разблокировка всех кнопок
+
         self.run.setEnabled(True)
 
         self.run_2.setEnabled(True)
@@ -261,6 +272,8 @@ class MainWindow(QMainWindow, mainwindow):
         self.filter_btn_acc.setEnabled(True)
 
     def off_buttons(self):
+        # Блокировка всех кнопок
+
         self.run.setEnabled(False)
 
         self.run_2.setEnabled(False)
@@ -274,23 +287,30 @@ class MainWindow(QMainWindow, mainwindow):
         self.filter_btn_acc.setEnabled(False)
 
     def open_dialog(self):
+        # Предложение о создании новой базы данных
+
         dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
         if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
             if dialog_for_question.com:
-                self.database = DateBaseW(self.input_s.text())
+                self.database = DateBaseW(self.db_link)
                 self.database.create_table()
                 self.activate_buttons()
 
     def chek(self):
-        if not isfile(self.input_s.text()):
+        # Поиск базы данных в дирректории с проектом
+
+        self.db_link = "Database/" + self.input_s.text()
+
+        if not isfile(self.db_link):
             self.open_dialog()
 
         else:
-            """Открытие окна о нахождении такой бд"""
-            self.database = DateBaseW(self.input_s.text())
+            self.msg0.show()
+            self.database = DateBaseW(self.db_link)
             self.activate_buttons()
 
     def startExecuting1(self, *args):
+        # Создание дополнительных потоков для корректной работы интерфейса и сборщика статей
 
         if self.database:
             self.database.exit()
@@ -298,18 +318,16 @@ class MainWindow(QMainWindow, mainwindow):
 
         if args[0] == 2:
 
-            self.run.setEnabled(False)
-
-            self.thread1 = WorkThread1(args, self.input_s.text())
+            self.thread1 = WorkThread1(args, self.db_link)
 
             self.thread1.start()
 
-            self.database = DateBaseW(self.input_s.text())
+            self.database = DateBaseW(self.db_link)
 
         else:
             if self.thread1 is None:
 
-                self.thread1 = WorkThread1(args, self.input_s.text())
+                self.thread1 = WorkThread1(args, self.db_link)
                 self.thread2 = WorkThread2()
                 self.thread1.start()
 
@@ -318,7 +336,7 @@ class MainWindow(QMainWindow, mainwindow):
 
                 self.run.setText("STOP")
 
-                self.database = DateBaseW(self.input_s.text())
+                self.database = DateBaseW(self.db_link)
 
             else:
 
@@ -330,9 +348,11 @@ class MainWindow(QMainWindow, mainwindow):
 
                 self.run.setText("RUN")
 
-                self.database = DateBaseW(self.input_s.text())
+                self.database = DateBaseW(self.db_link)
 
     def on_threadSignal(self, second):
+        # Функция для подсчета времени, прошедшего с начала сбора статей в автоматическом режиме
+
         hour = minute = 0
         if second // 3600 != 0:
             hour, second = second // 3600, second - hour * 3600
@@ -350,11 +370,13 @@ class MainWindow(QMainWindow, mainwindow):
 
             action = Parser()
 
+            # Получение типа статей для сбора
             box = list(
                 map(lambda val: val.text(), filter(lambda val: val.isChecked(), [self.type1, self.type2, self.type3])))
 
             box = list(map(lambda val: val.split('_')[0].lower(), box))
 
+            # Определение выбранного режима сбора
             if not self.st1.text() and not self.st2.text():
                 self.msg2.show()
             elif self.mode1.isChecked():
@@ -373,6 +395,7 @@ class MainWindow(QMainWindow, mainwindow):
                self.show_4, self.show_5, self.show_6,
                self.show_7, self.show_8, self.show_9]
 
+        # Получаем список с выбраными названиями столбцов
         rows_string = [i.text().lower() for i in row if i.isChecked()]
 
         result = self.database.show_rows(rows_string)
@@ -383,6 +406,7 @@ class MainWindow(QMainWindow, mainwindow):
         if not self.table:
             self.table.append([i.text().lower() for i in row])
             self.table.append(result)
+
         # Заполнили размеры таблицы
         self.tableWidget.setRowCount(len(result))
         self.tableWidget.setColumnCount(len(result[0]))
@@ -417,6 +441,8 @@ class MainWindow(QMainWindow, mainwindow):
 
         n = rows_string.index(params)
 
+        # Приводим дату в более удобный для работы формат
+
         if params == 'date':
             data.sort(key=lambda val: (
                 dt.datetime.strptime(val[3], '%d-%m-%Y').date(), dt.datetime.strptime(val[7], '%H:%M').time(), val[4]))
@@ -428,6 +454,7 @@ class MainWindow(QMainWindow, mainwindow):
           for j, val in enumerate(elem)] for i, elem in enumerate(data)]
 
     def delete_database(self):
+        # Проверяем какая кнопка нажата, если нажата кнопка (ДА), удаляем базу
         dialog_for_question = DialogForDeleteDataBase(self.mainwindow)
         if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
             if dialog_for_question.com:
@@ -442,6 +469,7 @@ class MainWindow(QMainWindow, mainwindow):
                     self.msg4.show()
 
     def cleare_table(self):
+        # Проверяем какая кнопка нажата, если нажата кнопка (ДА), удаляем все записи из базы
         dialog_for_question = DialogForClearDataBase(self.mainwindow)
         if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
             if dialog_for_question.com:
@@ -449,6 +477,7 @@ class MainWindow(QMainWindow, mainwindow):
                 self.tableWidget.clear()
 
     def disconnect_from_db(self):
+        # Отключение от базы
         self.input_s.setText('')
         self.tableWidget.clear()
 
