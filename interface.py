@@ -68,6 +68,7 @@ class WorkThread1(Qt.QThread):
             i = 1
             while True:
                 box = self.srpt.auto_parse(self.name, i)
+                # print(box)
                 for j in range(len(box)):
                     if self.chek_article(box[j][0]):
                         box = box[:j]
@@ -202,6 +203,8 @@ class MainWindow(QMainWindow, mainwindow):
 
         self.database = None
 
+        self.db_link = ""
+
     def initUi(self):
 
         font = QFont("Comic Sans MS", 12)
@@ -289,19 +292,21 @@ class MainWindow(QMainWindow, mainwindow):
         dialog_for_question = DialogWindowTableForQuestion(self.mainwindow)
         if dialog_for_question.exec_() == QtWidgets.QDialog.Accepted:
             if dialog_for_question.com:
-                self.database = DateBaseW(self.input_s.text())
+                self.database = DateBaseW(self.db_link)
                 self.database.create_table()
                 self.activate_buttons()
 
     def chek(self):
         # Поиск базы данных в дирректории с проектом
 
-        if not isfile(self.input_s.text()):
+        self.db_link = "Database/" + self.input_s.text()
+
+        if not isfile(self.db_link):
             self.open_dialog()
 
         else:
             self.msg0.show()
-            self.database = DateBaseW(self.input_s.text())
+            self.database = DateBaseW(self.db_link)
             self.activate_buttons()
 
     def startExecuting1(self, *args):
@@ -313,18 +318,16 @@ class MainWindow(QMainWindow, mainwindow):
 
         if args[0] == 2:
 
-            self.run.setEnabled(False)
-
-            self.thread1 = WorkThread1(args, self.input_s.text())
+            self.thread1 = WorkThread1(args, self.db_link)
 
             self.thread1.start()
 
-            self.database = DateBaseW(self.input_s.text())
+            self.database = DateBaseW(self.db_link)
 
         else:
             if self.thread1 is None:
 
-                self.thread1 = WorkThread1(args, self.input_s.text())
+                self.thread1 = WorkThread1(args, self.db_link)
                 self.thread2 = WorkThread2()
                 self.thread1.start()
 
@@ -333,7 +336,7 @@ class MainWindow(QMainWindow, mainwindow):
 
                 self.run.setText("STOP")
 
-                self.database = DateBaseW(self.input_s.text())
+                self.database = DateBaseW(self.db_link)
 
             else:
 
@@ -345,7 +348,7 @@ class MainWindow(QMainWindow, mainwindow):
 
                 self.run.setText("RUN")
 
-                self.database = DateBaseW(self.input_s.text())
+                self.database = DateBaseW(self.db_link)
 
     def on_threadSignal(self, second):
         # Функция для подсчета времени, прошедшего с начала сбора статей в автоматическом режиме
